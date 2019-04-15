@@ -13,20 +13,22 @@ import pandas as pd
 from utils import save_results
 
 
-def update_params(loaded_data, mode):
+def update(mode, loaded_data):
     total = 0.0
     total_loss = 0.0
     for iter, data in enumerate(loaded_data):
         inputs, labels = data
         inputs.requires_grad_()
-        if mode == 'train':
-            model.train()
-            model.zero_grad()
-        else:
-            model.eval()
 
         model.init_hidden(mode=mode)
-        output = model(inputs)
+        if mode == 'train':
+            model.zero_grad()
+            output = model(inputs)
+
+        else:
+            # for evaluating the network, we disable the gradient calculation with the no_grad function
+            with torch.no_grad():
+                output = model(inputs)
 
         loss_function = nn.CrossEntropyLoss()
         loss = loss_function(output, labels)
@@ -60,34 +62,6 @@ def update_params(loaded_data, mode):
                     plt.clf()
 
     return loss_val, mae_std
-
-
-def update(mode):
-    '''
-    :param mode: can be train, val, test, graph. Except the train mode, the network is in evaluation mode
-    :return: loss value
-    '''
-    # TODO without torch eval and merge update and update_param function
-    if mode == 'train':
-        loaded_data = train_loader
-        evaluate = False
-
-    elif mode == 'val':
-        loaded_data = val_loader
-        evaluate = True
-
-    elif mode == 'test' or mode == 'graph':
-        loaded_data = test_loader
-        evaluate = True
-
-    # for evaluating the network, we disable the gradient calculation with the no_grad function
-    if evaluate:
-        with torch.no_grad():
-            loss = update_params(loaded_data, mode)
-    else:
-        loss = update_params(loaded_data, mode)
-    return loss
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Hourly Prediction of the Bike Dataset using PyTorch')
@@ -177,10 +151,10 @@ if __name__ == "__main__":
 
     mistake_counter = 0  # mistakes counter for validation loss
     for epoch in range(args.epochs):
-        train_loss, _ = update('train')
+        train_loss, _ = update('train', train_loader)
         train_loss_records.append(train_loss)
 
-        val_loss, val_std = update('val')
+        val_loss, val_std = update('val', val_loader)
         val_loss_records.append(val_loss)
         val_std_records.append(val_std)
 
@@ -188,7 +162,7 @@ if __name__ == "__main__":
             if val_loss_records[-1] > val_loss_records[-2]:
                 mistake_counter += 1
 
-        test_loss, test_std = update('test')
+        test_loss, test_std = update('test', test_loader)
         test_loss_records.append(test_loss)
         test_std_records.append(test_std)
 
@@ -202,5 +176,5 @@ if __name__ == "__main__":
                                                                                 results_file, args=args, model=model,
                                                                                 test_loss=test_loss, test_std=test_std,
                                                                                 epoch=epoch)
-            update('graph')
+            update('graph', test_loader)
             break
