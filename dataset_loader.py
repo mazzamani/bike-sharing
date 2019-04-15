@@ -3,8 +3,8 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
 
-FLOAT =  torch.FloatTensor
-LONG =torch.LongTensor
+FLOAT = torch.FloatTensor
+LONG = torch.LongTensor
 
 
 class BikeDataset(Dataset):
@@ -12,8 +12,8 @@ class BikeDataset(Dataset):
     Loading the Bike dataset using Pytorch Dataloader
     """
 
-    def __init__(self, set_type, seq_len=1, prev_cnt='no', reduced_features=False,
-                 percet_bins=None, max_cnt=None, train_size=0.7, validation_size = 0.1, day_num=1, repeated_data_num=0):
+    def __init__(self, set_type, dataset, seq_len=1, prev_cnt='no', reduced_features=False,
+                 percet_bins=None, max_cnt=None, train_size=0.7, validation_size=0.1, day_num=1, repeated_data_num=0):
         """
         :param timeframe: day or hour
         :param set_type: train, val, test
@@ -23,9 +23,6 @@ class BikeDataset(Dataset):
         :param reduced_features: full feature or the reduced ones which selected from L1 regression
         """
 
-        # loading csv file
-        data_all = pd.read_csv("dataset/hour.csv")
-
         self.seq_len = seq_len
         self.prev_cnt = prev_cnt
         self.repeated_data_num = 0
@@ -33,11 +30,11 @@ class BikeDataset(Dataset):
         self.type = set_type
         self.repeated_data_num = repeated_data_num
 
-        len_dataset = len(data_all)
+        len_dataset = len(dataset)
 
         # Train, val and test set separation
         trn_last_idx = int(train_size * len_dataset)
-        val_last_idx = int((train_size + validation_size)* len_dataset)
+        val_last_idx = int((train_size + validation_size) * len_dataset)
 
         # validation and test set may not start from 00 hr due to a random splitting of dataset
         # we shift the index to start data from 00 hr
@@ -45,7 +42,7 @@ class BikeDataset(Dataset):
 
         # Splitting the dadaset
         if set_type == 'train':
-            data = data_all[0:trn_last_idx]
+            data = dataset[0:trn_last_idx]
             start_idx = 0
 
         elif set_type == 'val':
@@ -55,9 +52,9 @@ class BikeDataset(Dataset):
             for i in range(trn_last_idx + 1, trn_last_idx + 25):
                 start_idx += 1
                 shift_index += 1
-                if data_all['hr'][start_idx] == 0:
+                if dataset['hr'][start_idx] == 0:
                     break
-            data = data_all[start_idx : val_last_idx]
+            data = dataset[start_idx: val_last_idx]
 
         elif set_type == 'test':
 
@@ -66,10 +63,9 @@ class BikeDataset(Dataset):
             for i in range(val_last_idx + 1, val_last_idx + 25):
                 start_idx += 1
                 shift_index += 1
-                if data_all['hr'][start_idx] == 0:
+                if dataset['hr'][start_idx] == 0:
                     break
-            data = data_all[start_idx:]
-
+            data = dataset[start_idx:]
 
         self.x_np = []
         self.y_np = []
@@ -77,7 +73,7 @@ class BikeDataset(Dataset):
         # preparing data from the start_idx of the dataset
         for idx in range(start_idx, start_idx + len(data)):
 
-            # removing this index because many hours missing for those dates
+            # removing this index because many hours missing for those days
             if (571 <= idx <= 594) or (5618 <= idx <= 5651):
                 continue
 
@@ -92,7 +88,8 @@ class BikeDataset(Dataset):
 
                 assert number_of_repeat >= 0
 
-            # if we do not include previous day(s) sample as input data then there is no need to repeat in case of missing data
+            # if we do not include previous day(s) sample as input data then there is no need to repeat in case of
+            # missing data
             else:
                 number_of_repeat = 1
 
@@ -124,7 +121,8 @@ class BikeDataset(Dataset):
                     self.x_np.append(np.array(important_features + remaing_features))
                 self.y_np.append(np.array(data['cnt'][idx], dtype='f'))
 
-           # print('idx=',idx,  ' rec_hr=', data['hr'][idx], ' id%24=',idx % 24, 'correct_hr=', round(self.x_np[-1][1]*23))
+        # print('idx=',idx,  ' rec_hr=', data['hr'][idx], ' id%24=',idx % 24, 'correct_hr=', round(self.x_np[-1][
+        # 1]*23))
 
         self.feature_length = self.x_np[0].size
 
@@ -154,13 +152,11 @@ class BikeDataset(Dataset):
             self.set_len = len(x) - self.seq_len - 1
             idx_shift = 1
         elif self.prev_cnt == 'day':
-            self.set_len = len(x) - self.seq_len - 24 * day_num -1
+            self.set_len = len(x) - self.seq_len - 24 * day_num - 1
             idx_shift = 24 * day_num
-
 
         # This part prepares the input, output pairs in a list of the torch tensor format
         # Later, it is used in the __getitem__  function to build the bataches.
-
 
         # Converting to categorical output
         if percet_bins:
@@ -179,7 +175,7 @@ class BikeDataset(Dataset):
             output_discrete = np.digitize(rel_inc, bins=self.bins)
 
             # clipping the output in case of more than number of bins. Then minus 1 to start the classes numbers from 0
-            output_categorical = np.clip(output_discrete, 1, len(self.bins)-1)-1
+            output_categorical = np.clip(output_discrete, 1, len(self.bins) - 1) - 1
             assert 0 <= np.min(output_categorical) <= len(self.bins)
 
             # converting the numpy array to torch tensor
@@ -193,11 +189,9 @@ class BikeDataset(Dataset):
         else:
             self.output = [y[idx + idx_shift + self.seq_len] for idx in range(self.set_len)]
 
-
-
         # Multiple time steps and no additional info
         if self.prev_cnt == 'no':
-            self.input = [torch.stack(x[idx+1: idx + self.seq_len+1]) for idx in range(self.set_len)]
+            self.input = [torch.stack(x[idx + 1: idx + self.seq_len + 1]) for idx in range(self.set_len)]
 
         # Multiple time steps and the cnt of the previous hours for each time step is added to the input vector
         elif self.prev_cnt == 'hour':
