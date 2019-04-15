@@ -200,6 +200,7 @@ if __name__ == "__main__":
             print('TRAINING TERMINATED:30 time in a row validation loss has increased')
             subfolder_settled, subfolder, filename, results_file = save_results(subfolder_settled, subfolder, filename,
                                                                                 results_file, args=args, model=model,
-                                                                                test_loss=test_loss, test_std=test_std)
+                                                                                test_loss=test_loss, test_std=test_std,
+                                                                                epoch=epoch)
             update('graph')
             break
