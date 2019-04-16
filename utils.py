@@ -3,7 +3,7 @@ import os
 import torch
 
 
-def save_results(is_subfolder_settled, subfolder, filename, results_file, args, model, test_loss, test_std, epoch):
+def save_results(args, model, test_loss, test_std, epoch):
     data = {
         "model": model,
         "opt": args,
@@ -15,14 +15,10 @@ def save_results(is_subfolder_settled, subfolder, filename, results_file, args, 
     shared_string = '__lyr=  ' + str(args.num_layers) + '__hidNum=' + str(args.hidden_dim)
     dateset_info = '__SeqLen=' + str(args.seqlen) + '__Prev-cnt=' + str(args.prev_cnt) + '__Reduced-features=' + str(
         args.reduced)
-    if not is_subfolder_settled:
-        subfolder = 'results/' + model_name + shared_string + dateset_info + '__TIME=' + date
-        is_subfolder_settled = True
-        if not os.path.exists(subfolder):
-            os.makedirs(subfolder)
+    subfolder = 'results/' + model_name + shared_string + dateset_info + '__TIME=' + date
+    if not os.path.exists(subfolder):
+        os.makedirs(subfolder)
 
         filename = subfolder + '/' + 'model'
-        results_file = subfolder + '/results'
 
     torch.save(data, filename)
-    return is_subfolder_settled, subfolder, filename, results_file

@@ -7,61 +7,11 @@ from models import GRUmodel
 import torch.optim as optim
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
+from metrics import Metric
 from utils import save_results
 
-
-def update(mode, loaded_data):
-    total = 0.0
-    total_loss = 0.0
-    for iter, data in enumerate(loaded_data):
-        inputs, labels = data
-        inputs.requires_grad_()
-
-        model.init_hidden(mode=mode)
-        if mode == 'train':
-            model.zero_grad()
-            output = model(inputs)
-
-        else:
-            # for evaluating the network, we disable the gradient calculation with the no_grad function
-            with torch.no_grad():
-                output = model(inputs)
-
-        loss_function = nn.CrossEntropyLoss()
-        loss = loss_function(output, labels)
-
-        if mode == 'train':
-            loss.backward()
-            clipping_value = 1  # arbitrary number of your choosing
-            torch.nn.utils.clip_grad_norm_(model.parameters(), clipping_value)
-            optimizer.step()
-        total += 1
-        total_loss += loss.item()
-        loss_val = total_loss / total
-        mae_std = 0.
-        if mode == 'test' or mode == 'graph':
-            percent = 1 + training_set.bins[output.max(1)[1].numpy()]
-
-            prev_out_continuous = test_set.prev_out_continuous[0:len(percent)]
-            target_out_continuous = test_set.out_continuous[0:len(percent)]
-
-            pred_out_continuous = np.multiply(percent, prev_out_continuous)
-            loss_val = mean_absolute_error(pred_out_continuous, target_out_continuous) * model.max_val
-            mae_std = np.std(abs(pred_out_continuous - target_out_continuous)) * model.max_val
-
-            if mode == 'graph':
-                for idx in range(len(pred_out_continuous) - 201):
-                    plt.plot(np.arange(0, 200), pred_out_continuous[idx:idx + 200] * model.max_val,
-                             target_out_continuous[idx:idx + 200] * model.max_val)
-                    plt.legend(['prediction', 'target'])
-                    plt.draw()
-                    plt.pause(.001)
-                    plt.clf()
-
-    return loss_val, mae_std
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Hourly Prediction of the Bike Dataset using PyTorch')
@@ -136,7 +86,13 @@ if __name__ == "__main__":
     model.max_val = training_set.max_cnt.numpy()
     optimizer = optim.Adam(model.parameters(), lr=args.rate)
 
-    loss_function = nn.CrossEntropyLoss
+    loss_function = nn.CrossEntropyLoss()
+
+    data_loader = train_loader, val_loader, test_loader
+    test_prev_out_continuous = test_set.prev_out_continuous
+    test_out_continuous = test_set.out_continuous
+    metric = Metric(train_loader, val_loader, test_loader, model, optimizer, loss_function,
+                    training_set.bins, test_prev_out_continuous, test_out_continuous, model.max_val)
 
     train_loss_records = []
     val_loss_records = []
@@ -144,25 +100,21 @@ if __name__ == "__main__":
 
     val_std_records = []
     test_std_records = []
-    subfolder_settled = False
-    subfolder = ''
-    filename = ''
-    results_file = ''
+
 
     mistake_counter = 0  # mistakes counter for validation loss
     for epoch in range(args.epochs):
-        train_loss, _ = update('train', train_loader)
+        train_loss = metric.train()
         train_loss_records.append(train_loss)
 
-        val_loss, val_std = update('val', val_loader)
+        val_loss = metric.val_eval()
         val_loss_records.append(val_loss)
-        val_std_records.append(val_std)
 
         if epoch > 20:
             if val_loss_records[-1] > val_loss_records[-2]:
                 mistake_counter += 1
 
-        test_loss, test_std = update('test', test_loader)
+        test_loss, test_std = metric.test_eval()
         test_loss_records.append(test_loss)
         test_std_records.append(test_std)
 
@@ -172,9 +124,6 @@ if __name__ == "__main__":
                test_std_records[epoch]))
         if mistake_counter > 30 or epoch == args.epochs - 1:
             print('TRAINING TERMINATED:30 time in a row validation loss has increased')
-            subfolder_settled, subfolder, filename, results_file = save_results(subfolder_settled, subfolder, filename,
-                                                                                results_file, args=args, model=model,
-                                                                                test_loss=test_loss, test_std=test_std,
-                                                                                epoch=epoch)
+            save_results(args=args, model=model, test_loss=test_loss, test_std=test_std, epoch=epoch)
             update('graph', test_loader)
             break
