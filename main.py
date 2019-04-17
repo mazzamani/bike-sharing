@@ -48,20 +48,19 @@ if __name__ == "__main__":
     # percent_bins = [-1 + i / 10 for i in range(31)] #+ [1.2 + i / 5 for i in range(10)]
     percent_bins = [-1] + list(np.arange(-.75, .45, .05)) + list(np.arange(.5, 2.75, .25))
     percent_bins.sort()
-
     # loading csv file
     dataset = pd.read_csv("dataset/hour.csv")
     training_set = BikeDataset(set_type='train', dataset=dataset, seq_len=seq_len, prev_cnt=args.prev_cnt,
-                               reduced_features=args.reduced, percet_bins=percent_bins, day_num=args.day_num)
+                               reduced_features=args.reduced, percent_bins=percent_bins, day_num=args.day_num)
 
     val_set = BikeDataset(set_type='val', dataset=dataset, seq_len=seq_len, prev_cnt=args.prev_cnt,
                           day_num=args.day_num,
-                          reduced_features=args.reduced, percet_bins=percent_bins, max_cnt=training_set.max_cnt,
+                          reduced_features=args.reduced, percent_bins=percent_bins, max_cnt=training_set.max_cnt,
                           repeated_data_num=training_set.repeated_data_num)
 
     test_set = BikeDataset(set_type='test', dataset=dataset, seq_len=seq_len, prev_cnt=args.prev_cnt,
                            day_num=args.day_num,
-                           reduced_features=args.reduced, percet_bins=percent_bins, max_cnt=training_set.max_cnt,
+                           reduced_features=args.reduced, percent_bins=percent_bins, max_cnt=training_set.max_cnt,
                            repeated_data_num=val_set.repeated_data_num)
 
     train_loader = DataLoader(training_set, batch_size=args.batch_size,

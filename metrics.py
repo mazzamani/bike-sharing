@@ -67,7 +67,7 @@ class Metric():
             loss_val = total_loss / total
         return loss_val
 
-    def test_eval(self):
+    def test_eval(self, graph=False):
         for iter, data in enumerate(self.test_loader):
             inputs, labels = data
         self.model.init_hidden(mode='test')
@@ -80,26 +80,19 @@ class Metric():
         target_out_continuous = self.test_out_continuous[0:len(percent)]
 
         pred_out_continuous = np.multiply(percent, prev_out_continuous)
-        loss_val = mean_absolute_error(pred_out_continuous, target_out_continuous) * self.max_val
-        mae_std = np.std(abs(pred_out_continuous - target_out_continuous)) * self.max_val
+        if graph:
+            for idx in range(len(pred_out_continuous) - 201):
+                plt.plot(np.arange(0, 200), pred_out_continuous[idx:idx + 200] * self.max_val,
+                         target_out_continuous[idx:idx + 200] * self.max_val)
+                plt.legend(['prediction', 'target'])
+                plt.draw()
+                plt.pause(.001)
+                plt.clf()
+        else:
+            loss_val = mean_absolute_error(pred_out_continuous, target_out_continuous) * self.max_val
+            mae_std = np.std(abs(pred_out_continuous - target_out_continuous)) * self.max_val
+
         return loss_val, mae_std
 
     def graph(self):
-        for iter, data in enumerate(self.test_loader):
-            inputs, labels = data
-        with torch.no_grad():
-            output = self.model(inputs)
-        percent = 1 + self.bins[output.max(1)[1].numpy()]
-
-        prev_out_continuous = self.test_prev_out_continuous[0:len(percent)]
-        target_out_continuous = self.test_out_continuous[0:len(percent)]
-
-        pred_out_continuous = np.multiply(percent, prev_out_continuous)
-        for idx in range(len(pred_out_continuous) - 201):
-            plt.plot(np.arange(0, 200), pred_out_continuous[idx:idx + 200] * self.max_val,
-                     target_out_continuous[idx:idx + 200] * self.max_val)
-            plt.legend(['prediction', 'target'])
-            plt.draw()
-            plt.pause(.001)
-            plt.clf()
-
+        self.test_eval(graph=True)
