@@ -3,15 +3,19 @@ from sklearn.metrics import mean_absolute_error as mae
 from dataset_loader import BikeDataset
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 if __name__ == '__main__':
+
+    # loading csv file
+    dataset = pd.read_csv("dataset/hour.csv")
 
     # Splitting the dataset into training, validation, and test set
     # The split can change by train_size and validation_size keywords
     # The default split are train_size=0.7 and validation_size=0.1
-    traing_set = BikeDataset('train')
-    val_set = BikeDataset( 'val')
-    test_set = BikeDataset( 'test')
+    traing_set = BikeDataset('train', dataset=dataset)
+    val_set = BikeDataset( 'val', dataset=dataset)
+    test_set = BikeDataset( 'test', dataset=dataset)
 
     #Linear Regression Model
     reg = linear_model.LinearRegression()
@@ -125,6 +129,6 @@ if __name__ == '__main__':
     print('Histogram of relative change compared to previous hour of the following bins are shown:')
     print('Percentage bins: ',['%.2f' % i for i in percent_bins])
     plt.figure(1)
-    traing_set = BikeDataset('train', seq_len=2, prev_cnt='hour', percet_bins=percent_bins)
+    traing_set = BikeDataset('train', dataset=dataset, seq_len=2, prev_cnt='hour', percent_bins=percent_bins)
     plt.hist(traing_set.percentage, bins=percent_bins)
     plt.show()

@@ -30,17 +30,14 @@ if __name__ == "__main__":
     # Dataset
     parser.add_argument('-seqlen', type=int, default=2,
                         help='number of output classes in the generated training dataset')
-    parser.add_argument('-prev_cnt', dest='prev_cnt', type=str, default='hour',
+    parser.add_argument('-prev_cnt', dest='prev_cnt', type=str, default='no',
                         help='Model(x_t, y_(t-i), y_(t-j): values: no, hour, week')
-    parser.add_argument('-day_num', dest='day_num', type=int, default=1,
+    parser.add_argument('-day_num', dest='day_num', type=int, default=2,
                         help='Model(x_t, y_(t-i), y_(t-j): values: no, hour, week')
     parser.add_argument('--reduced', dest='reduced', action='store_false',
                         help='if true, only uses the limited number of features which filtered by simple L1 regression')
-    parser.add_argument('--bidir', dest='bidir', action='store_true',
-                        help='if true, the lstm model will use the last hidden state as output otherwise average over '
-                             'hidden states')
+
     parser.set_defaults(reduced=False)
-    parser.set_defaults(bidir=False)
     args = parser.parse_args()
 
     seq_len = args.seqlen
@@ -48,8 +45,10 @@ if __name__ == "__main__":
     # percent_bins = [-1 + i / 10 for i in range(31)] #+ [1.2 + i / 5 for i in range(10)]
     percent_bins = [-1] + list(np.arange(-.75, .45, .05)) + list(np.arange(.5, 2.75, .25))
     percent_bins.sort()
+
     # loading csv file
     dataset = pd.read_csv("dataset/hour.csv")
+
     training_set = BikeDataset(set_type='train', dataset=dataset, seq_len=seq_len, prev_cnt=args.prev_cnt,
                                reduced_features=args.reduced, percent_bins=percent_bins, day_num=args.day_num)
 
@@ -78,7 +77,7 @@ if __name__ == "__main__":
     elif args.prev_cnt == 'day':
         previous_cnt_feature_size = args.day_num
 
-    model = GRUmodel(args, input_dim=feature_size + previous_cnt_feature_size, bi_dir=args.bidir,
+    model = GRUmodel(args, input_dim=feature_size + previous_cnt_feature_size,
                      val_test_batch=[len(val_set), len(test_set)], class_num=len(percent_bins))
 
     # get the maximum value from the training as a reference to convert back normalize data to the orginal number
@@ -124,5 +123,5 @@ if __name__ == "__main__":
         if mistake_counter > 30 or epoch == args.epochs - 1:
             print('TRAINING TERMINATED:30 time in a row validation loss has increased')
             save_results(args=args, model=model, test_loss=test_loss, test_std=test_std, epoch=epoch)
-            update('graph', test_loader)
+            metric.graph()
             break

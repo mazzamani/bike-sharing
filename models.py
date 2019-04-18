@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class GRUmodel(nn.Module):
-    def __init__(self, args, input_dim, val_test_batch, class_num, bi_dir=False):
+    def __init__(self, args, input_dim, val_test_batch, class_num):
         super(GRUmodel, self).__init__()
 
         self.args = args
@@ -14,15 +14,13 @@ class GRUmodel(nn.Module):
         self.inner_batch_size = args.batch_size
         self.val_test_batch = val_test_batch
 
-        self.bi_dir = bi_dir
-        self.bi_dir_coef = 1 + int(bi_dir)
 
         self.gru = nn.GRU(input_size=input_dim, hidden_size=self.hidden_dim, dropout=args.dropout,
-                            num_layers=self.num_layers, batch_first=True, bidirectional=bi_dir)
+                            num_layers=self.num_layers, batch_first=True)
 
         self.init_hidden(mode='train')
         self.relu = nn.ReLU()
-        self.lin1 = nn.Linear(self.hidden_dim  * self.bi_dir_coef, 64)
+        self.lin1 = nn.Linear(self.hidden_dim , 64)
         self.lin2 = nn.Linear(64, class_num)
 
     def init_hidden(self, mode):
@@ -37,7 +35,7 @@ class GRUmodel(nn.Module):
 
         self.inner_batch_size = batch_size
 
-        self.hidden = torch.zeros(self.bi_dir_coef * self.num_layers, batch_size, self.hidden_dim, requires_grad=True) # h
+        self.hidden = torch.zeros( self.num_layers, batch_size, self.hidden_dim, requires_grad=True) # h
 
     def forward(self, input_batch):
 

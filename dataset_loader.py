@@ -13,7 +13,8 @@ class BikeDataset(Dataset):
     """
 
     def __init__(self, set_type, dataset, seq_len=1, prev_cnt='no', reduced_features=False,
-                 percent_bins=None, max_cnt=None, train_size=0.7, validation_size=0.1, day_num=1, repeated_data_num=0):
+                 percent_bins=[-.5, -.25, 0, .25, .5, 1, 2], max_cnt=None, train_size=0.7,
+                 validation_size=0.1, day_num=1, repeated_data_num=0):
         """
         :param timeframe: day or hour
         :param set_type: train, val, test
@@ -48,24 +49,25 @@ class BikeDataset(Dataset):
     def input_output_preparation(self, x, y, percent_bins, seq_len, day_num):
         # Calculating the length of the (train/val/test) set
         # Also, calculating the shift of index for multi time steps
-        if self.prev_cnt == 'hour' or self.prev_cnt == 'no':
-            self.set_len = len(x) - self.seq_len - 1
-            idx_shift = 1
-        elif self.prev_cnt == 'day':
-            self.set_len = len(x) - self.seq_len - 24 * day_num - 1
-            idx_shift = 24 * day_num
+
 
         # This part prepares the input, output pairs in a list of the torch tensor format
         # Later, it is used in the __getitem__  function to build the bataches.
 
         # Converting to categorical output
-        if self.prev_cnt == 'hour' or self.prev_cnt == 'no':
-            hour_num = 1
+        if self.prev_cnt == 'no':
+            rel_output_ref_hour_num = 24
+            idx_shift = 24
+        elif self.prev_cnt == 'hour' :
+            rel_output_ref_hour_num = 1
+            idx_shift = 1
         elif self.prev_cnt == 'day':
-            hour_num = 24
+            rel_output_ref_hour_num = 24
+            idx_shift = 24 * day_num
 
+        self.set_len = len(x) - self.seq_len - idx_shift - 1
 
-        self.output_preparation(y, idx_shift, percent_bins, hour_num)
+        self.output_preparation(y, idx_shift, percent_bins, rel_output_ref_hour_num)
         self.input_preparation(x, y, seq_len, day_num)
 
 
@@ -94,7 +96,8 @@ class BikeDataset(Dataset):
 
     def output_preparation(self, y, idx_shift, percent_bins, hour_num):
         # calculating the relative change respect to the previous hour/day
-        rel_inc = (np.array(y[idx_shift:]) - np.array(y[idx_shift - 1:-1])) / np.array(y[idx_shift - 1:-1])
+        rel_inc = (np.array(y[idx_shift:]) - np.array(y[idx_shift - hour_num:-hour_num])) \
+                  / np.array(y[idx_shift - hour_num:-hour_num])
         self.percentage = rel_inc
 
         # converting relative change into discrete categories. The discretization is done based on the given bins.
