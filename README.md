@@ -1,5 +1,5 @@
 # bike-sharing
-The goal is to predict the bike sharing count per hour. The dataset can be found here (data set: https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset.)
+The goal is to predict the bike sharing count per hour. The dataset can be found here (https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset.)
 
 Here are the simple baseline methods:
 
