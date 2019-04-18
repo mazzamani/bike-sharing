@@ -1,5 +1,5 @@
 # bike-sharing
-predicting bike sharing count per hour 
+The goal is to predict the bike sharing count per hour. 
 
 Here are the simple baseline methods:
 
