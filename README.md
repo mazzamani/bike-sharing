@@ -1,5 +1,7 @@
 # bike-sharing
-predicting bike sharing count per hour
+predicting bike sharing count per hour 
+
+Here are the simple baseline methods:
 
 |              Baseline Method              |   MAE  |   STD  |
 |:-----------------------------------------:|:------:|:------:|
@@ -8,6 +10,10 @@ predicting bike sharing count per hour
 |              Keep Hourly Pace             | 89.21  | 125.17 |
 | Linear Regression, without regularization | 142.21 | 115.59 |
 
+## Method
+In this repository I have used RNN-GRU with different configurations. First, the dataset is divided into 70% training set, 10% validation set and 20% test set. Then, the bike count is normalized respect to the maximum bike count number in the training set. The network is trained with the relative count respect to the previous day (same hour) or the previous hour. It means in this approach we have one of these two assumptions: either (1) we already know the count of the previous hour and we need to predict the next hour or (2) we know the previous day data (which is more realistic). The proposed architecture calculates the relative change and its value is converted into the absolute value for getting the absolute count number. Also, the relative change was trained by converting it into discrete levels (here: [-1]+[-.75:0.05:0.45]+[0.5:0.25:2.5])
+ 
+Here is the results with Gated Recurrent Unit (GRU): 
 
 |             RNN-GRU input (output is Y(t))             |    MAE   |    STD   |
 |:------------------------------------------------------:|:--------:|:--------:|
