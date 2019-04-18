@@ -26,3 +26,7 @@ Here is the results with Gated Recurrent Unit (GRU):
 |                [X(t), Y(t-24), Y(t-48)]                | 15.7937  |  37.0861 |
 |          [[X(t-1), Y(t-25)], [X(t), Y(t-24)]]          |  58.8632 |  85.9595 |
 | [[X(t-1), Y(t-25), Y(t-49)], [X(t), Y(t-24), Y(t-48)]] |  16.2291 |  35.1439 |
+
+The predicted value and actual value for a portion of test set is shown in the figure below (with this configuration
+[[X(t-1), Y(t-25), Y(t-49)], [X(t), Y(t-24), Y(t-48)]]).
+![result](Figure_1.png)
