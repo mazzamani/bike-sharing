@@ -1,6 +1,7 @@
 import datetime
 import os
 import torch
+import numpy as np
 
 
 def save_results(args, model, test_loss, test_std, epoch):
@@ -22,3 +23,17 @@ def save_results(args, model, test_loss, test_std, epoch):
         filename = subfolder + '/' + 'model'
 
     torch.save(data, filename)
+
+
+def gen_equal_freq_bins(x, nbin):
+    nlen = len(x)
+    return np.interp(np.linspace(0, nlen, nbin + 1),
+                     np.arange(nlen),
+                     np.sort(x))
+
+
+def output_normalization(y, idx_shift, hour_num):
+    # calculating the relative change respect to the previous hour/day
+    rel_inc = (np.array(y[idx_shift:]) - np.array(y[idx_shift - hour_num:-hour_num])) \
+              / (np.array(y[idx_shift - hour_num:-hour_num]) + 1e-5)
+    return rel_inc

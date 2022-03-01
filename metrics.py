@@ -18,6 +18,7 @@ class Metric():
         self.optimizer = optimizer
         self.loss = loss
         self.max_val = max_val
+        self.GRAPHIC_FIXED_WINDOW = 200
 
         
     def train(self):
@@ -81,16 +82,23 @@ class Metric():
 
         pred_out_continuous = np.multiply(percent, prev_out_continuous)
         if graph:
-            for idx in range(len(pred_out_continuous) - 201):
-                plt.plot(np.arange(0, 200), pred_out_continuous[idx:idx + 200] * self.max_val,
-                         target_out_continuous[idx:idx + 200] * self.max_val)
+            num_test_sample_to_show = 400 # len(pred_out_continuous)
+            for idx in range(num_test_sample_to_show - self.GRAPHIC_FIXED_WINDOW - 1):
+                progress = round(100 * idx/(num_test_sample_to_show - self.GRAPHIC_FIXED_WINDOW))
+                plt.plot(np.arange(-self.GRAPHIC_FIXED_WINDOW, 0),
+                         pred_out_continuous[idx:idx + self.GRAPHIC_FIXED_WINDOW] * self.max_val,
+                         np.arange(-self.GRAPHIC_FIXED_WINDOW, 0),
+                         target_out_continuous[idx:idx + self.GRAPHIC_FIXED_WINDOW] * self.max_val)
                 plt.legend(['prediction', 'target'])
+                plt.xlabel('hours')
+                plt.ylabel('bike counts')
+                plt.title('Predicition of rented bikes (hourly) on the test set' + '\nprogress: %' + str(progress))
                 plt.draw()
-                plt.pause(.001)
+                plt.pause(.0001)
                 plt.clf()
-        else:
-            loss_val = mean_absolute_error(pred_out_continuous, target_out_continuous) * self.max_val
-            mae_std = np.std(abs(pred_out_continuous - target_out_continuous)) * self.max_val
+
+        loss_val = mean_absolute_error(pred_out_continuous, target_out_continuous) * self.max_val
+        mae_std = np.std(abs(pred_out_continuous - target_out_continuous)) * self.max_val
 
         return loss_val, mae_std
 

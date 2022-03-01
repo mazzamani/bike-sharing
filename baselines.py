@@ -4,6 +4,8 @@ from dataset_loader import BikeDataset
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from utils import gen_equal_freq_bins, output_normalization
+
 
 if __name__ == '__main__':
 
@@ -115,20 +117,40 @@ if __name__ == '__main__':
           .format(mae(prediction, target), np.std(abs(prediction-target))))
     print('================================================================')
 
-    print('Using the previous day same hour to predict the current cnt')
-    for myset in [traing_set, val_set, test_set]:
-        error_sum = 0
-        mean_inc = 0
-        for i in range(len(myset.x_np)-24):
-            error_sum += abs(myset.y_np[i -24] - myset.y_np[i])
-        print('{} error: {:.2f}'.format(myset.type, error_sum / (len(myset.x_np)-24)))
+    print('Using prvious day same hour cnt number as prediction for the current cnt')
 
-    #Showing the histogram of change with respect to previous hour
+    prediction = np.stack(traing_set.y_np[24:])
+    target = np.stack(traing_set.y_np[:-24])
+    print('train error: {:.2f}, std: {:.2f}'
+          .format(mae(prediction, target), np.std(abs(prediction-target))))
+
+    prediction = np.stack(val_set.y_np[24:])
+    target = np.stack(val_set.y_np[:-24])
+    print('val error  : {:.2f}, std: {:.2f}'
+          .format(mae(prediction, target), np.std(abs(prediction-target))))
+
+    prediction = np.stack(test_set.y_np[24:])
+    target = np.stack(test_set.y_np[:-24])
+    print('test error : {:.2f}, std: {:.2f}'
+          .format(mae(prediction, target), np.std(abs(prediction-target))))
+    print('================================================================')
+
+    #Showing the histogram of relative change in number of rented bikes with respect to previous hour
     #percent_bins = [-1 + i/10 for i in range(31)] # simpler bin file
     percent_bins = [-1] + list(np.arange(-.75, .45, .05)) + list(np.arange(.5, 2.75, .25))
-    print('Histogram of relative change compared to previous hour of the following bins are shown:')
+    print('Histogram of rate change compared to previous hour of the following bins are shown:')
     print('Percentage bins: ',['%.2f' % i for i in percent_bins])
-    plt.figure(1)
+    fig, axes = plt.subplots(2, 1)
     traing_set = BikeDataset('train', dataset=dataset, seq_len=2, prev_cnt='hour', percent_bins=percent_bins)
-    plt.hist(traing_set.percentage, bins=percent_bins)
+    axes[0].hist(traing_set.percentage, bins=percent_bins, edgecolor='black', linewidth=1.2)
+    axes[0].set_title('relative change in number of rental bikes with respect to previous hour with arbitary bins')
+    axes[0].set_ylabel('Bike rental count')
+    
+    # histogram of relative change in number of rental bikes with Equal Frequency Binning
+    rel_outputs = output_normalization(traing_set.raw_output, 1, 1)
+    percent_bins_equal_freq = gen_equal_freq_bins(rel_outputs, 20)
+    traing_set = BikeDataset('train', dataset=dataset, seq_len=2, prev_cnt='hour', percent_bins=percent_bins_equal_freq)
+    axes[1].hist(traing_set.percentage, bins=percent_bins_equal_freq, edgecolor='black', linewidth=1.2)
+    axes[1].set_title('relative change in number of rental bikes with respect to previous hour with Equal Frequency Binning')
+    axes[1].set_ylabel('Bike rental count')
     plt.show()

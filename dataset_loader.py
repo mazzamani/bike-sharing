@@ -1,7 +1,7 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
+from torch.utils.data import Dataset
 import numpy as np
+from utils import gen_equal_freq_bins
 
 FLOAT = torch.FloatTensor
 LONG = torch.LongTensor
@@ -13,7 +13,7 @@ class BikeDataset(Dataset):
     """
 
     def __init__(self, set_type, dataset, seq_len=1, prev_cnt='no', reduced_features=False,
-                 percent_bins=[-.5, -.25, 0, .25, .5, 1, 2], max_cnt=None, train_size=0.7,
+                 percent_bins=None, num_bins=20, max_cnt=None, train_size=0.7,
                  validation_size=0.1, day_num=1, repeated_data_num=0):
         """
         :param timeframe: day or hour
@@ -30,11 +30,11 @@ class BikeDataset(Dataset):
         self.reduced_features = reduced_features
         self.type = set_type
         self.repeated_data_num = repeated_data_num
-
+        self.num_bins = num_bins
         data, start_idx = self.dataset_spliter(set_type, dataset, train_size, validation_size)
 
-        x, y =self.data_normalizer(start_idx, data, max_cnt)
-
+        x, y = self.data_normalizer(start_idx, data, max_cnt)
+        self.raw_output = y
         # Printing number of the repeated samples, due to missing hours
         if self.prev_cnt == 'day':
             if set_type == 'train':
@@ -97,9 +97,12 @@ class BikeDataset(Dataset):
     def output_preparation(self, y, idx_shift, percent_bins, hour_num):
         # calculating the relative change respect to the previous hour/day
         rel_inc = (np.array(y[idx_shift:]) - np.array(y[idx_shift - hour_num:-hour_num])) \
-                  / np.array(y[idx_shift - hour_num:-hour_num])
-        self.percentage = rel_inc
+                  / (np.array(y[idx_shift - hour_num:-hour_num]) + 1e-10)
 
+        if percent_bins is None:
+            percent_bins = gen_equal_freq_bins(rel_inc, self.num_bins)
+
+        self.percentage = rel_inc
         # converting relative change into discrete categories. The discretization is done based on the given bins.
         # the discrete output is from 1 to number of bins
         self.bins = np.array(percent_bins)
