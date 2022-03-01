@@ -1,6 +1,9 @@
 # bike-sharing
 The goal is to predict the bike sharing count per hour. The dataset can be found here (https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset.)
 ## Setup
+update pip and install virtualenv if necessary (check [here](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/))
+
+
 create a virtual environment in python:
 ```
 python -m venv bike_sharing_env
@@ -9,12 +12,15 @@ then, activate the environment on Windows:
 ```
 .\bike_sharing_env\Scripts\activate
 ```
+and on Linux/macOS
+```
+source env/bin/activate
+```
 finally, install the requirements:
 ```
 pip install -r requirements.txt
 ``` 
 
-https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/
 ## Baselines
 The proposed RNN method is compared with some simple baseline methods:
 
